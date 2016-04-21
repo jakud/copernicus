@@ -22,8 +22,9 @@ class Request:
     def send(self):
         self.__ser.write(chr(self.query))
 
-    def set_state(self, **kwargs):
-        pass  # TODO
+    def set_state(self, key, value):
+        self.__bounds_checker(key, value)
+        self.query = self.__setter_bits_offset(name) + value
 
     def get_query(self):
         return self.query
@@ -45,6 +46,29 @@ class Request:
         # TODO should throw an exception
         return mapping.get(parameter, 0)
 
+    @staticmethod
+    def __setter_bits_offset(parameter):
+        mapping = {
+            'led1': 32,
+            'led2': 64,
+            'dashboard': 0
+        }
+
+        return mapping.get(parameter, 0)
+
+    @staticmethod
+    def __bounds_checker(key, value):
+        bounds = {
+            'led1': 1,
+            'led2': 63,
+            'dashboard': 31
+        }
+
+        if not key in bounds:
+            raise Exception("Invalid argument name")
+
+        if value < 0 or value > bounds.get(key):
+            raise Exception("Set argument out of bounds!")
 
 class Response:
 
@@ -113,4 +137,3 @@ class Copernicus:
             return SubscribeResponse(cls.__ser, )
         # else:
         #     return QueryResponse(cls.__ser)
-
