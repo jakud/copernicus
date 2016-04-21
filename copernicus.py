@@ -1,5 +1,6 @@
 import serial
 import thread
+import time
 
 
 class Request:
@@ -24,7 +25,7 @@ class Request:
 
     def set_state(self, key, value):
         self.__bounds_checker(key, value)
-        self.query = self.__setter_bits_offset(name) + value
+        self.query = self.__setter_bits_offset(key) + value
 
     def get_query(self):
         return self.query
@@ -114,7 +115,7 @@ class SubscribeResponse(Response):
             if len(cc) > 0:
                 ch = ord(cc)
                 for w in sorted(d, key=d.get, reverse=True):
-                    if ch - d[w] > 0:
+                    if ch - d[w] >= 0:
                         self.__cached_state[w] = ch - d[w]
                         break
 
