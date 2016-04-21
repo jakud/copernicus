@@ -1,24 +1,35 @@
 import serial
+import thread
 
 
 class Request:
-
-    def __init__(self):
+    def __init__(self, ser):
         self.query = 0
+        self.__ser = ser
+        self.subscribed = False
+        self.parameters = 0
 
     def query_for_parameters(self, parameters):
         self.query = reduce(
                 lambda acc, p: self.__query_bits(p) + acc, parameters, 128 + 64)
+        self.parameters = len(parameters)
 
     def subscribe_on(self, parameters):
         self.query = reduce(
                 lambda acc, p: self.__query_bits(p) + acc, parameters, 128)
+        self.subscribed = True
+
+    def send(self):
+        self.__ser.write(chr(self.query))
 
     def set_state(self, **kwargs):
-        pass #TODO
+        pass  # TODO
 
     def get_query(self):
         return self.query
+
+    def is_subscribed(self):
+        return self.subscribed
 
     @staticmethod
     def __query_bits(parameter):
@@ -36,7 +47,52 @@ class Request:
 
 
 class Response:
-    pass    #TODO
+
+    mapping = {
+        'light': 0,
+        'button1': 194,
+        'button2': 196,
+        'knob': 64,
+        'temperature': 128,
+        'motion': 192
+    }
+
+    def __query_bits(self, parameter):
+    # TODO what if key is not in map ? currently we return 0, maybe we
+    # TODO should throw an exception
+        return self.mapping.get(parameter, 0)
+
+
+# class QueryResponse(Response):
+#
+#     def get_current_state(self):
+#         cc = self.__ser.read(1)
+#     if len(cc) > 0:
+#         ch = ord(cc)
+#         for key in  self.keys:
+#             ch - self.__query_bits(key)
+
+class SubscribeResponse(Response):
+    keys = ['light', 'button1', 'button2', 'knob', 'temperature', 'motion']
+
+    def __init__(self, ser):
+        self.__ser = ser
+        self.__cached_state = dict()
+        thread.start_new_thread(self.state_updater, ())
+
+    def get_state(self):
+        return self.__cached_state
+
+    def state_updater(self):
+        d = self.mapping
+        while True:
+            cc = self.__ser.read(1)
+            if len(cc) > 0:
+                ch = ord(cc)
+                for w in sorted(d, key=d.get, reverse=True):
+                    if ch - d[w] > 0:
+                        self.__cached_state[w] = ch - d[w]
+                        break
 
 
 class Copernicus:
@@ -44,14 +100,17 @@ class Copernicus:
 
     @classmethod
     def create_request(cls):
-        return Request()
+        return Request(cls.__ser)
 
     @classmethod
     def create_response(cls):
-        return Response()
+        return SubscribeResponse(cls.__ser)
 
     @classmethod
     def send_request(cls, request):
-        cls.__ser.write(chr(request.get_query()))
-
+        request.send()
+        if request.is_subscribed():
+            return SubscribeResponse(cls.__ser, )
+        # else:
+        #     return QueryResponse(cls.__ser)
 
