@@ -33,6 +33,9 @@ class Request:
     def is_subscribed(self):
         return self.subscribed
 
+    def get_parameters(self):
+        return self.parameters
+
     @staticmethod
     def __query_bits(parameter):
         mapping = {
@@ -88,14 +91,29 @@ class Response:
         return self.mapping.get(parameter, 0)
 
 
-# class QueryResponse(Response):
-#
-#     def get_current_state(self):
-#         cc = self.__ser.read(1)
-#     if len(cc) > 0:
-#         ch = ord(cc)
-#         for key in  self.keys:
-#             ch - self.__query_bits(key)
+class QueryResponse(Response):
+
+    def __init__(self, ser, params):
+        self.__ser = ser
+        self.__params = params
+        self.__cached_state = dict()
+        self.get_state()
+
+    def get_current_state(self):
+        return self.__cached_state()
+
+    def get_state(self):
+        d = self.mapping
+        while self.__params > 0:
+            cc = self.__ser.read(1)
+            if len(cc) > 0:
+                ch = ord(cc)
+                for w in sorted(d, key=d.get, reverse=True):
+                    if ch - d[w] >= 0:
+                        self.__cached_state[w] = ch - d[w]
+                        self.__params -= 1
+                        break
+        
 
 class SubscribeResponse(Response):
     keys = ['light', 'button1', 'button2', 'knob', 'temperature', 'motion']
@@ -135,6 +153,6 @@ class Copernicus:
     def send_request(cls, request):
         request.send()
         if request.is_subscribed():
-            return SubscribeResponse(cls.__ser, )
-        # else:
-        #     return QueryResponse(cls.__ser)
+            return SubscribeResponse(cls.__ser)
+        else:
+            return QueryResponse(cls.__ser, request.get_parameters())
