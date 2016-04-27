@@ -1,7 +1,7 @@
 import serial
 import thread
 import time
-
+import sys
 
 class Request:
     def __init__(self, ser):
@@ -97,12 +97,12 @@ class QueryResponse(Response):
         self.__ser = ser
         self.__params = params
         self.__cached_state = dict()
-        self.get_state()
-
-    def get_current_state(self):
-        return self.__cached_state()
+        self.init_state()
 
     def get_state(self):
+        return self.__cached_state
+
+    def init_state(self):
         d = self.mapping
         while self.__params > 0:
             cc = self.__ser.read(1)
@@ -120,7 +120,8 @@ class SubscribeResponse(Response):
 
     def __init__(self, ser):
         self.__ser = ser
-        self.__cached_state = dict()
+        self.__cached_state = ResponseDict()
+        # self.__cached_state = dict()
         thread.start_new_thread(self.state_updater, ())
 
     def get_state(self):
@@ -145,7 +146,7 @@ class Copernicus:
     def create_request(cls):
         return Request(cls.__ser)
 
-    @classmethod
+    @classmethod    # todowywalic
     def create_response(cls):
         return SubscribeResponse(cls.__ser)
 
@@ -156,3 +157,21 @@ class Copernicus:
             return SubscribeResponse(cls.__ser)
         else:
             return QueryResponse(cls.__ser, request.get_parameters())
+
+
+class ResponseDict:
+
+    def __init__(self):
+        self.internal = {}
+
+    def __getitem__(self, key):
+        return self.internal.get(key, 0)
+
+    def __setitem__(self, key, value):
+        print "DUPA"
+        self.internal[key] = value
+
+    def __str__(self):
+        return str(self.internal)
+
+
