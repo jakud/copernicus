@@ -1,15 +1,18 @@
 from copernicus import *
-import time
 
 r = Copernicus.create_request()
 
 r.subscribe_on(['button1', 'knob', 'light'])
-# r.query_for_parameters(['button1', 'knob', 'light'])
-print r
-
-
-
 resp = Copernicus.send_request(r)
-print resp
 print resp.get_state()
-print resp.get_state()['light']
+
+r2 = Copernicus.create_request()
+
+r2.subscribe_on(['button1', 'knob', 'light'])
+resp2 = Copernicus.send_request(r)
+print resp2.get_state()
+
+
+r3 = Copernicus.create_request()
+r3.set_state('led1', 1)
+Copernicus.send_request(r3)

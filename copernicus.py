@@ -1,7 +1,5 @@
 import serial
 import thread
-import time
-import sys
 
 class Request:
     def __init__(self, ser):
@@ -46,8 +44,6 @@ class Request:
             'temperature': 2,
             'motion': 1
         }
-        # TODO what if key is not in map ? currently we return 0, maybe we
-        # TODO should throw an exception
         return mapping.get(parameter, 0)
 
     @staticmethod
@@ -74,6 +70,7 @@ class Request:
         if value < 0 or value > bounds.get(key):
             raise Exception("Set argument out of bounds!")
 
+
 class Response:
 
     mapping = {
@@ -86,8 +83,6 @@ class Response:
     }
 
     def __query_bits(self, parameter):
-    # TODO what if key is not in map ? currently we return 0, maybe we
-    # TODO should throw an exception
         return self.mapping.get(parameter, 0)
 
 
@@ -120,8 +115,14 @@ class SubscribeResponse(Response):
 
     def __init__(self, ser):
         self.__ser = ser
-        self.__cached_state = ResponseDict()
-        # self.__cached_state = dict()
+        self.__cached_state = {
+            'light': 0,
+            'button1': 0,
+            'button2': 0,
+            'knob': 0,
+            'temperature': 0,
+            'motion': 0
+        }
         thread.start_new_thread(self.state_updater, ())
 
     def get_state(self):
@@ -146,10 +147,6 @@ class Copernicus:
     def create_request(cls):
         return Request(cls.__ser)
 
-    @classmethod    # todowywalic
-    def create_response(cls):
-        return SubscribeResponse(cls.__ser)
-
     @classmethod
     def send_request(cls, request):
         request.send()
@@ -157,21 +154,3 @@ class Copernicus:
             return SubscribeResponse(cls.__ser)
         else:
             return QueryResponse(cls.__ser, request.get_parameters())
-
-
-class ResponseDict:
-
-    def __init__(self):
-        self.internal = {}
-
-    def __getitem__(self, key):
-        return self.internal.get(key, 0)
-
-    def __setitem__(self, key, value):
-        print "DUPA"
-        self.internal[key] = value
-
-    def __str__(self):
-        return str(self.internal)
-
-
